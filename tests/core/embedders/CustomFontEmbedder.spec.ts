@@ -3,13 +3,27 @@ import fs from 'fs';
 
 import {
   CustomFontEmbedder,
+  CustomFontSubsetEmbedder,
+  PDFArray,
   PDFContext,
   PDFDict,
   PDFHexString,
+  PDFName,
   PDFRef,
 } from 'src/index';
 
 const ubuntuFont = fs.readFileSync('./assets/fonts/ubuntu/Ubuntu-R.ttf');
+const appleStormFont = fs.readFileSync(
+  './assets/fonts/apple_storm/AppleStormRg.otf',
+);
+
+const embeddedCIDFont = async (embedder: CustomFontEmbedder) => {
+  const context = PDFContext.create();
+  const ref = await embedder.embedIntoContext(context);
+  const type0 = context.lookup(ref, PDFDict);
+  const descendants = type0.lookup(PDFName.of('DescendantFonts'), PDFArray);
+  return descendants.lookup(0, PDFDict);
+};
 
 describe(`CustomFontEmbedder`, () => {
   it(`can be constructed with CustomFontEmbedder.for(...)`, async () => {
@@ -61,6 +75,29 @@ describe(`CustomFontEmbedder`, () => {
     expect(context.enumerateIndirectObjects().length).toBe(5);
     expect(context.lookup(predefinedRef)).toBeInstanceOf(PDFDict);
     expect(ref).toBe(predefinedRef);
+  });
+
+  it(`writes CIDToGIDMap only on a CIDFontType2 (TrueType) descendant font`, async () => {
+    // ISO 32000-1 Table 117: CIDToGIDMap is defined for CIDFontType2 only.
+    const trueType = await embeddedCIDFont(
+      await CustomFontEmbedder.for(fontkit, new Uint8Array(ubuntuFont)),
+    );
+    expect(trueType.get(PDFName.of('Subtype'))).toBe(
+      PDFName.of('CIDFontType2'),
+    );
+    expect(trueType.get(PDFName.of('CIDToGIDMap'))).toBe(
+      PDFName.of('Identity'),
+    );
+
+    // The subset of a CFF-based OpenType font is embedded as CIDFontType0.
+    const subset = await CustomFontSubsetEmbedder.for(
+      fontkit,
+      new Uint8Array(appleStormFont),
+    );
+    subset.encodeText('Storm');
+    const cff = await embeddedCIDFont(subset);
+    expect(cff.get(PDFName.of('Subtype'))).toBe(PDFName.of('CIDFontType0'));
+    expect(cff.has(PDFName.of('CIDToGIDMap'))).toBe(false);
   });
 
   it(`can encode text strings into PDFHexString objects`, async () => {

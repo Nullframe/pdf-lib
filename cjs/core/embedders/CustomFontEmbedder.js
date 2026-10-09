@@ -128,19 +128,11 @@ var CustomFontEmbedder = /** @class */ (function () {
                     case 0: return [4 /*yield*/, this.embedFontDescriptor(context)];
                     case 1:
                         fontDescriptorRef = _a.sent();
-                        cidFontDict = context.obj({
-                            Type: 'Font',
-                            Subtype: this.isCFF() ? 'CIDFontType0' : 'CIDFontType2',
-                            CIDToGIDMap: 'Identity',
-                            BaseFont: this.baseFontName,
-                            CIDSystemInfo: {
+                        cidFontDict = context.obj(tslib_1.__assign(tslib_1.__assign({ Type: 'Font', Subtype: this.isCFF() ? 'CIDFontType0' : 'CIDFontType2' }, (this.isCFF() ? {} : { CIDToGIDMap: 'Identity' })), { BaseFont: this.baseFontName, CIDSystemInfo: {
                                 Registry: PDFString_1.default.of('Adobe'),
                                 Ordering: PDFString_1.default.of('Identity'),
                                 Supplement: 0,
-                            },
-                            FontDescriptor: fontDescriptorRef,
-                            W: this.computeWidths(),
-                        });
+                            }, FontDescriptor: fontDescriptorRef, W: this.computeWidths() }));
                         return [2 /*return*/, context.register(cidFontDict)];
                 }
             });
