@@ -141,10 +141,12 @@ class CustomFontEmbedder {
   protected async embedCIDFontDict(context: PDFContext): Promise<PDFRef> {
     const fontDescriptorRef = await this.embedFontDescriptor(context);
 
+    // CIDToGIDMap is only defined for CIDFontType2 (ISO 32000-1 Table 117). A CFF-based
+    // CIDFontType0 font maps CIDs to glyphs through its own CFF charset.
     const cidFontDict = context.obj({
       Type: 'Font',
       Subtype: this.isCFF() ? 'CIDFontType0' : 'CIDFontType2',
-      CIDToGIDMap: 'Identity',
+      ...(this.isCFF() ? {} : { CIDToGIDMap: 'Identity' }),
       BaseFont: this.baseFontName,
       CIDSystemInfo: {
         Registry: PDFString.of('Adobe'),
